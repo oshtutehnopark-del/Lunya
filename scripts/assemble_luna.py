@@ -16,31 +16,33 @@ DUR = {int(k): v for k, v in json.load(open(f"{S}/vo_luna/dur.json")).items()}
 U = "/root/.claude/uploads/96502a5f-267a-5e70-abdd-8e11d247afa6/"
 VO = []
 def say(i, t): VO.append((i, t)); return t + DUR[i]
+say(1, 0.8); say(2, 5.2); say(3, 10.5); say(4, 15.4)
+APPLE_LAND = [19.0 + k * 2.2 for k in range(5)]
+for k in range(5): e = say(5 + k, APPLE_LAND[k] + 0.05)
+e = say(10, e + 0.4)
+CLEAR_T = e + 0.2; Q1_POP = CLEAR_T + 0.4
+e = say(11, Q1_POP + 0.6); Q1_ANS = e + 2.5
+e = say(12, Q1_ANS); Q2_SWAP = e + 0.4
+e = say(13, Q2_SWAP + 0.6); Q2_ANS = e + 2.5
+e = say(14, Q2_ANS); F0 = e + 0.35
+e = say(15, F0 + 0.2)
+G0 = F0 + 5.0; e = say(16, G0 + 0.5)
 SEGS = [(U+"b62a5833-2026-11-18_203513.mp4", 0, 10.0, False),
+        (SC+"/n2_fly.mp4", 0, 5.0, True),
         (U+"09e865a2-2026-11-18_203524.mp4", 0, 10.0, False),
         (SC+"/w2.mp4", 0, 5.0, True),
         (SC+"/w3.mp4", 0, 5.0, True),
         (U+"21e9a24f-2026-11-18_203517.mp4", 4.5, 5.5, False),
         (SC+"/w1.mp4", 0, 5.0, True),
-        (U+"ce3354b7-2026-11-18_203535.mp4", 0, 10.0, False),
+        (U+"ce3354b7-2026-11-18_203535.mp4", 0, F0 - 45.5, False),
+        (SC+"/n3_basket.mp4", 0, 5.0, False),
         (SC+"/w6.mp4", 0, 3.5, True),
         (U+"21e9a24f-2026-11-18_203517.mp4", 0, 4.4, False)]
 BOUND = [0]
 for sg in SEGS: BOUND.append(BOUND[-1] + sg[2])
 TOTAL = BOUND[-1]; NF = int(TOTAL * FPS)
-say(1, 0.8); say(2, 5.2); say(4, 10.4)
-APPLE_LAND = [14.0 + k * 2.2 for k in range(5)]
-for k in range(5): say(5 + k, APPLE_LAND[k] + 0.05)
-e = say(10, 23.8)
-CLEAR_T = e + 0.2; Q1_POP = CLEAR_T + 0.4
-e = say(11, Q1_POP + 0.6); Q1_ANS = e + 3.0
-e = say(12, Q1_ANS); Q2_SWAP = e + 0.4
-e = say(13, Q2_SWAP + 0.6); Q2_ANS = e + 3.0
-e = say(14, Q2_ANS); F0 = e + 0.4
-say(15, F0 + 0.2)
-G0 = BOUND[7]; say(16, G0 + 0.5)
-TOG = [1e9] * 5; D0 = 23.8; C0 = 10.0
-print("total", round(TOTAL, 1), "F0", round(F0, 1), "G0", round(G0, 1))
+TOG = [1e9] * 5; D0 = APPLE_LAND[4] + 1.0; C0 = 15.0
+print("total", round(TOTAL, 1), "F0", round(F0, 1), "G0", round(G0, 1), [round(x,1) for x in BOUND])
 
 # ---------------- clips ----------------
 def seg_reader(path, ss, dur, interp):
@@ -174,7 +176,7 @@ def overlay(fr, t):
     elif Q1_POP + .5 <= t < Q1_ANS or Q2_SWAP + .5 <= t < Q2_ANS: q = True
     elif Q1_ANS <= t < Q2_SWAP: cnt = 2; lt = t - Q1_ANS
     elif Q2_ANS <= t < F0 - .2: cnt = 3; lt = t - Q2_ANS
-    BX = 210 if BOUND[6] <= t < BOUND[7] else W - 210
+    BX = 210 if BOUND[7] <= t < BOUND[8] else W - 210
     if cnt is not None:
         paste(fr, BADGES[cnt], BX, 190, back(lt / .4))
         paste(fr, WORD[cnt], BX, 370, 1, ease((lt - .2) / .3))
