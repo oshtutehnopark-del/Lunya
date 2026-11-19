@@ -1,0 +1,10 @@
+{
+  "en": {
+    "narrator": { "engine": "kokoro", "voice": "af_heart", "speed": 0.88 },
+    "pip":      { "engine": "kokoro", "voice": "af_bella", "speed": 0.95, "pitch": 1.12 }
+  },
+  "ru": {
+    "narrator": { "engine": "vosk", "speaker_id": 0, "speech_rate": 0.9 },
+    "pip":      { "engine": "vosk", "speaker_id": 2, "speech_rate": 0.95, "pitch": 1.12 }
+  }
+}

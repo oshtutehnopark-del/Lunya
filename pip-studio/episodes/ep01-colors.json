@@ -1,0 +1,206 @@
+{
+  "id": "ep01-colors",
+  "title": {
+    "en": "Pip Learns Colors",
+    "ru": "Пип учит цвета"
+  },
+  "duration": 41.5,
+  "pages": {
+    "en": "pages/pip-en.html",
+    "ru": "pages/pip-ru.html"
+  },
+  "lines": [
+    {
+      "t": 0.4,
+      "en": "Pip learns colors!",
+      "ru": "Пип учит цвета!",
+      "who": "narrator"
+    },
+    {
+      "t": 3.65,
+      "en": "This is an apple. The apple is red.",
+      "ru": "Это яблоко. Яблоко красное.",
+      "who": "narrator"
+    },
+    {
+      "t": 6.9,
+      "en": "Red!",
+      "ru": "Красный!",
+      "who": "pip"
+    },
+    {
+      "t": 9.65,
+      "en": "This is a ball. The ball is blue.",
+      "ru": "Это мяч. Мяч синий.",
+      "who": "narrator"
+    },
+    {
+      "t": 12.9,
+      "en": "Blue!",
+      "ru": "Синий!",
+      "who": "pip"
+    },
+    {
+      "t": 15.65,
+      "en": "This is the sun. The sun is yellow.",
+      "ru": "Это солнышко. Солнышко жёлтое.",
+      "who": "narrator"
+    },
+    {
+      "t": 18.9,
+      "en": "Yellow!",
+      "ru": "Жёлтый!",
+      "who": "pip"
+    },
+    {
+      "t": 21.65,
+      "en": "This is a leaf. The leaf is green.",
+      "ru": "Это листик. Листик зелёный.",
+      "who": "narrator"
+    },
+    {
+      "t": 24.9,
+      "en": "Green!",
+      "ru": "Зелёный!",
+      "who": "pip"
+    },
+    {
+      "t": 27.7,
+      "en": "Let's count apples!",
+      "ru": "Давай посчитаем яблоки!",
+      "who": "narrator"
+    },
+    {
+      "t": 29.65,
+      "en": "One!",
+      "ru": "Один!",
+      "who": "narrator"
+    },
+    {
+      "t": 30.95,
+      "en": "Two!",
+      "ru": "Два!",
+      "who": "narrator"
+    },
+    {
+      "t": 32.25,
+      "en": "Three!",
+      "ru": "Три!",
+      "who": "narrator"
+    },
+    {
+      "t": 33.55,
+      "en": "Three apples!",
+      "ru": "Три яблока!",
+      "who": "pip"
+    },
+    {
+      "t": 35.8,
+      "en": "Bye-bye! See you soon!",
+      "ru": "Пока-пока! До встречи!",
+      "who": "pip"
+    }
+  ],
+  "sfx": [
+    {
+      "t": 0.05,
+      "type": "sparkle"
+    },
+    {
+      "t": 0.1,
+      "type": "pop"
+    },
+    {
+      "t": 3.5,
+      "type": "whoosh"
+    },
+    {
+      "t": 4.13,
+      "type": "boing"
+    },
+    {
+      "t": 4.47,
+      "type": "boing_small"
+    },
+    {
+      "t": 6.9,
+      "type": "ding"
+    },
+    {
+      "t": 9.5,
+      "type": "whoosh"
+    },
+    {
+      "t": 10.13,
+      "type": "boing"
+    },
+    {
+      "t": 10.47,
+      "type": "boing_small"
+    },
+    {
+      "t": 12.9,
+      "type": "ding"
+    },
+    {
+      "t": 15.5,
+      "type": "whoosh"
+    },
+    {
+      "t": 16.13,
+      "type": "boing"
+    },
+    {
+      "t": 16.47,
+      "type": "boing_small"
+    },
+    {
+      "t": 18.9,
+      "type": "ding"
+    },
+    {
+      "t": 21.5,
+      "type": "whoosh"
+    },
+    {
+      "t": 22.13,
+      "type": "boing"
+    },
+    {
+      "t": 22.47,
+      "type": "boing_small"
+    },
+    {
+      "t": 24.9,
+      "type": "ding"
+    },
+    {
+      "t": 27.5,
+      "type": "whoosh"
+    },
+    {
+      "t": 29.6,
+      "type": "count1"
+    },
+    {
+      "t": 30.9,
+      "type": "count2"
+    },
+    {
+      "t": 32.2,
+      "type": "count3"
+    },
+    {
+      "t": 33.5,
+      "type": "fanfare"
+    },
+    {
+      "t": 35.5,
+      "type": "whoosh"
+    },
+    {
+      "t": 35.8,
+      "type": "byebye"
+    }
+  ]
+}

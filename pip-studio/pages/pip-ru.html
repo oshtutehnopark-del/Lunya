@@ -1,0 +1,321 @@
+<title>Пип учит цвета</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap">
+<style>
+/* Layout: one full-screen stage canvas, big caption under the character, a pill of controls at the bottom. Single sunny look by choice. */
+:root {
+  --sky: #bfe6f5;
+  --ink: #2c3550;
+  --cream: #fffaf0;
+  --btn: #ff8a5c;
+  --btn-ink: #ffffff;
+  --round: "Nunito", "Comic Sans MS", "Trebuchet MS", system-ui, sans-serif;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body { background: var(--sky); color: var(--ink); font-family: var(--round); overflow: hidden; }
+canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+.controls {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+  width: calc(100% - 32px); max-width: 520px;
+}
+button {
+  font: 800 1.05rem var(--round); border: 0; border-radius: 999px;
+  padding: 10px 20px; cursor: pointer; background: var(--cream); color: var(--ink);
+  box-shadow: 0 3px 0 rgba(44,53,80,0.25);
+}
+button.primary { background: var(--btn); color: var(--btn-ink); }
+button:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(44,53,80,0.25); }
+button:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+</style>
+
+<canvas id="stage" aria-label="Мультик: птенец Пип учит цвета и считает"></canvas>
+<div class="controls">
+  <button id="play" class="primary" type="button">▶ Смотреть</button>
+  <button id="next" type="button">Дальше ›</button>
+  <button id="sound" type="button">Звук: вкл</button>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('stage'), ctx = cv.getContext('2d');
+  const playBtn = document.getElementById('play'), nextBtn = document.getElementById('next'), soundBtn = document.getElementById('sound');
+  let W = 0, H = 0;
+  let playing = false, sound = true, sceneIdx = 0, sceneT = 0, clock = 0;
+
+  // ---------- script ----------
+  const SCENES = [
+    { caption: 'Пип учит цвета', say: 'Пип учит цвета!', items: [], title: true, dur: 3.5 },
+    { caption: 'Это яблоко. Яблоко КРАСНОЕ.', say: 'Это яблоко. Яблоко красное. Красный!', items: ['apple'], word: 'Красный!', color: '#e8473c', dur: 6 },
+    { caption: 'Это мяч. Мяч СИНИЙ.', say: 'Это мяч. Мяч синий. Синий!', items: ['ball'], word: 'Синий!', color: '#3d7be0', dur: 6 },
+    { caption: 'Это солнышко. Солнышко ЖЁЛТОЕ.', say: 'Это солнышко. Солнышко жёлтое. Жёлтый!', items: ['sun'], word: 'Жёлтый!', color: '#f2b705', dur: 6 },
+    { caption: 'Это листик. Листик ЗЕЛЁНЫЙ.', say: 'Это листик. Листик зелёный. Зелёный!', items: ['leaf'], word: 'Зелёный!', color: '#3fa34d', dur: 6 },
+    { caption: 'Давай посчитаем яблоки!', say: 'Давай посчитаем яблоки! Один. Два. Три. Три яблока!', items: ['apple', 'apple', 'apple'], count: true, dur: 8 },
+    { caption: 'Пока-пока! До встречи!', say: 'Пока-пока! До встречи!', items: [], bye: true, dur: 4.5 },
+  ];
+
+  function speak(text) {
+    try {
+      if (!sound || !('speechSynthesis' in window)) return;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'ru-RU'; u.rate = 0.82; u.pitch = 1.35;
+      speechSynthesis.speak(u);
+    } catch (e) { /* speech unavailable: captions still show */ }
+  }
+  function goTo(i) {
+    sceneIdx = (i + SCENES.length) % SCENES.length; sceneT = 0;
+    if (playing) speak(SCENES[sceneIdx].say);
+  }
+
+  // ---------- helpers ----------
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function bounceOut(x) {
+    const n = 7.5625, d = 2.75;
+    if (x < 1 / d) return n * x * x;
+    if (x < 2 / d) return n * (x -= 1.5 / d) * x + 0.75;
+    if (x < 2.5 / d) return n * (x -= 2.25 / d) * x + 0.9375;
+    return n * (x -= 2.625 / d) * x + 0.984375;
+  }
+  const popIn = (t) => t <= 0 ? 0 : t >= 1 ? 1 : 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2);
+
+  function resize() {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  // ---------- background ----------
+  const clouds = [{ x: 0.15, y: 0.14, s: 1 }, { x: 0.6, y: 0.09, s: 0.8 }, { x: 0.88, y: 0.2, s: 1.1 }];
+  const flowers = Array.from({ length: 22 }, (_, i) => ({ x: (i + Math.random() * 0.8) / 22, y: 0.8 + Math.random() * 0.14, c: ['#ff7aa8', '#ffffff', '#ffd23f', '#b98cff'][i % 4] }));
+  function drawBg(t) {
+    ctx.fillStyle = '#bfe6f5'; ctx.fillRect(0, 0, W, H);
+    for (const c of clouds) {
+      const x = ((c.x * W + t * 12 * c.s) % (W + 200)) - 100, y = c.y * H, r = 26 * c.s * Math.max(0.7, W / 1000);
+      ctx.fillStyle = '#ffffff';
+      [[0, 0, 1], [r * 0.9, -r * 0.4, 0.85], [r * 1.8, 0, 0.9], [r * 0.9, r * 0.2, 1]].forEach(([dx, dy, k]) => { ctx.beginPath(); ctx.arc(x + dx, y + dy, r * k, 0, 7); ctx.fill(); });
+    }
+    ctx.fillStyle = '#9bd77a';
+    ctx.beginPath(); ctx.moveTo(0, H * 0.7);
+    ctx.quadraticCurveTo(W * 0.25, H * 0.62, W * 0.5, H * 0.69);
+    ctx.quadraticCurveTo(W * 0.78, H * 0.76, W, H * 0.66);
+    ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
+    ctx.fillStyle = '#7cc463'; ctx.fillRect(0, H * 0.78, W, H);
+    ctx.beginPath(); ctx.ellipse(W / 2, H * 0.78, W * 0.7, H * 0.05, 0, 0, 7); ctx.fill();
+    for (const f of flowers) {
+      const x = f.x * W, y = f.y * H, r = 5;
+      ctx.fillStyle = f.c;
+      for (let k = 0; k < 5; k++) { const a = k * 1.2566 + Math.sin(t + f.x * 9) * 0.1; ctx.beginPath(); ctx.arc(x + Math.cos(a) * r, y + Math.sin(a) * r, r * 0.75, 0, 7); ctx.fill(); }
+      ctx.fillStyle = '#ffb703'; ctx.beginPath(); ctx.arc(x, y, r * 0.6, 0, 7); ctx.fill();
+    }
+  }
+
+  // ---------- Pip (original character: a round grey chick) ----------
+  function drawPip(x, y, R, t, mood) {
+    const hop = mood.hop ? Math.abs(Math.sin(t * 6)) * R * 0.25 : Math.abs(Math.sin(t * 2.2)) * R * 0.05;
+    const squash = 1 + Math.sin(t * 4.4) * 0.025;
+    y -= hop;
+    ctx.save(); ctx.translate(x, y);
+    // shadow
+    ctx.fillStyle = 'rgba(44,53,80,0.15)';
+    ctx.beginPath(); ctx.ellipse(0, R * 0.98 + hop, R * 0.75, R * 0.12, 0, 0, 7); ctx.fill();
+    // feet
+    ctx.strokeStyle = '#f59e2a'; ctx.lineWidth = R * 0.07; ctx.lineCap = 'round';
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(s * R * 0.3, R * 0.8); ctx.lineTo(s * R * 0.32, R * 0.98); ctx.moveTo(s * R * 0.32, R * 0.98); ctx.lineTo(s * R * 0.45, R * 1.0); ctx.stroke(); }
+    ctx.scale(1 / squash, squash);
+    // wings (flap when waving)
+    const flap = mood.wave ? Math.sin(t * 12) * 0.6 : Math.sin(t * 2) * 0.08;
+    for (const s of [-1, 1]) {
+      ctx.save(); ctx.translate(s * R * 0.85, R * 0.1); ctx.rotate(s * (0.4 + (s > 0 || mood.waveBoth ? flap : 0.05)));
+      ctx.fillStyle = '#8e99a8'; ctx.beginPath(); ctx.ellipse(s * R * 0.12, -R * 0.05, R * 0.28, R * 0.42, s * 0.5, 0, 7); ctx.fill();
+      ctx.fillStyle = '#2f3440'; ctx.beginPath(); ctx.ellipse(s * R * 0.2, -R * 0.3, R * 0.12, R * 0.16, s * 0.5, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+    // body
+    const g = ctx.createRadialGradient(-R * 0.3, -R * 0.4, R * 0.2, 0, 0, R * 1.05);
+    g.addColorStop(0, '#f3f5f8'); g.addColorStop(1, '#b7c0cc');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, R, 0, 7); ctx.fill();
+    // belly
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(0, R * 0.38, R * 0.55, R * 0.48, 0, 0, 7); ctx.fill();
+    // head tuft
+    ctx.strokeStyle = '#8e99a8'; ctx.lineWidth = R * 0.08;
+    ctx.beginPath(); ctx.moveTo(0, -R * 0.95); ctx.quadraticCurveTo(R * 0.05, -R * 1.25, R * 0.25, -R * 1.2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-R * 0.05, -R * 0.95); ctx.quadraticCurveTo(-R * 0.15, -R * 1.2, -R * 0.02, -R * 1.3); ctx.stroke();
+    // eyes (blink)
+    const blink = (t % 3.6) < 0.12;
+    for (const s of [-1, 1]) {
+      const ex = s * R * 0.36, ey = -R * 0.22;
+      if (blink) { ctx.strokeStyle = '#2c3550'; ctx.lineWidth = R * 0.05; ctx.beginPath(); ctx.moveTo(ex - R * 0.14, ey); ctx.lineTo(ex + R * 0.14, ey); ctx.stroke(); continue; }
+      ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc(ex, ey, R * 0.2, 0, 7); ctx.fill();
+      ctx.fillStyle = '#2c3550'; ctx.beginPath(); ctx.arc(ex + mood.look * R * 0.05, ey, R * 0.11, 0, 7); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(ex + mood.look * R * 0.05 - R * 0.04, ey - R * 0.05, R * 0.04, 0, 7); ctx.fill();
+    }
+    // cheeks
+    ctx.fillStyle = 'rgba(255,138,92,0.35)';
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(s * R * 0.58, R * 0.05, R * 0.12, R * 0.07, 0, 0, 7); ctx.fill(); }
+    // beak (opens while talking)
+    const open = mood.talk ? Math.abs(Math.sin(t * 14)) * R * 0.12 : 0;
+    ctx.fillStyle = '#f59e2a';
+    ctx.beginPath(); ctx.moveTo(-R * 0.13, R * 0.0); ctx.lineTo(R * 0.13, R * 0.0); ctx.lineTo(0, R * 0.16); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-R * 0.1, R * 0.03 + open); ctx.lineTo(R * 0.1, R * 0.03 + open); ctx.lineTo(0, R * 0.13 + open); ctx.fill();
+    ctx.restore();
+  }
+
+  // ---------- objects ----------
+  function drawItem(kind, x, y, s, t) {
+    ctx.save(); ctx.translate(x, y);
+    if (kind === 'apple') {
+      ctx.fillStyle = '#e8473c';
+      ctx.beginPath(); ctx.arc(-s * 0.32, 0, s * 0.55, 0, 7); ctx.arc(s * 0.32, 0, s * 0.55, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, s * 0.15, s * 0.55, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.beginPath(); ctx.ellipse(-s * 0.45, -s * 0.2, s * 0.12, s * 0.22, 0.4, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#6b4226'; ctx.lineWidth = s * 0.08; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(0, -s * 0.45); ctx.lineTo(s * 0.06, -s * 0.75); ctx.stroke();
+      ctx.fillStyle = '#3fa34d'; ctx.beginPath(); ctx.ellipse(s * 0.25, -s * 0.68, s * 0.2, s * 0.09, -0.5, 0, 7); ctx.fill();
+    } else if (kind === 'ball') {
+      ctx.rotate(t * 2);
+      ctx.fillStyle = '#3d7be0'; ctx.beginPath(); ctx.arc(0, 0, s * 0.75, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = s * 0.12;
+      ctx.beginPath(); ctx.arc(0, 0, s * 0.75, -0.5, 0.5); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, s * 0.75, 2.64, 3.64); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-s * 0.75, 0); ctx.lineTo(s * 0.75, 0); ctx.stroke();
+    } else if (kind === 'sun') {
+      ctx.rotate(t * 0.6);
+      ctx.strokeStyle = '#f2b705'; ctx.lineWidth = s * 0.12; ctx.lineCap = 'round';
+      for (let k = 0; k < 10; k++) { const a = k * 0.628; ctx.beginPath(); ctx.moveTo(Math.cos(a) * s * 0.75, Math.sin(a) * s * 0.75); ctx.lineTo(Math.cos(a) * s * 1.0, Math.sin(a) * s * 1.0); ctx.stroke(); }
+      ctx.rotate(-t * 0.6);
+      ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc(0, 0, s * 0.6, 0, 7); ctx.fill();
+      ctx.fillStyle = '#2c3550';
+      for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(sx * s * 0.2, -s * 0.1, s * 0.06, 0, 7); ctx.fill(); }
+      ctx.strokeStyle = '#2c3550'; ctx.lineWidth = s * 0.05; ctx.beginPath(); ctx.arc(0, s * 0.05, s * 0.2, 0.3, 2.84); ctx.stroke();
+    } else if (kind === 'leaf') {
+      ctx.rotate(Math.sin(t * 2) * 0.15 - 0.4);
+      ctx.fillStyle = '#3fa34d';
+      ctx.beginPath(); ctx.moveTo(0, -s * 0.85); ctx.quadraticCurveTo(s * 0.7, -s * 0.2, 0, s * 0.75); ctx.quadraticCurveTo(-s * 0.7, -s * 0.2, 0, -s * 0.85); ctx.fill();
+      ctx.strokeStyle = '#2b7a37'; ctx.lineWidth = s * 0.06;
+      ctx.beginPath(); ctx.moveTo(0, -s * 0.7); ctx.lineTo(0, s * 0.95); ctx.stroke();
+      for (const k of [-0.35, 0, 0.35]) for (const sx of [-1, 1]) { ctx.beginPath(); ctx.moveTo(0, k * s); ctx.lineTo(sx * s * 0.3, k * s - s * 0.2); ctx.stroke(); }
+    }
+    ctx.restore();
+  }
+
+  function bubble(x, y, text, color, s) {
+    ctx.font = `800 ${s}px ${getComputedStyle(document.documentElement).getPropertyValue('--round')}`;
+    const w = ctx.measureText(text).width + s, h = s * 1.5;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.roundRect(x - w / 2, y - h, w, h, h / 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x - s * 0.3, y - 2); ctx.lineTo(x - s * 0.7, y + s * 0.5); ctx.lineTo(x + s * 0.1, y - 2); ctx.fill();
+    ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y - h / 2 + 2);
+  }
+
+  function caption(text, s) {
+    ctx.font = `800 ${s}px ${getComputedStyle(document.documentElement).getPropertyValue('--round')}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    // fit to width
+    let size = s; while (ctx.measureText(text).width > W - 40 && size > 14) { size -= 2; ctx.font = `800 ${size}px ${getComputedStyle(document.documentElement).getPropertyValue('--round')}`; }
+    const y = H * 0.86;
+    ctx.lineWidth = size * 0.28; ctx.strokeStyle = '#ffffff'; ctx.lineJoin = 'round';
+    ctx.strokeText(text, W / 2, y);
+    ctx.fillStyle = '#2c3550'; ctx.fillText(text, W / 2, y);
+  }
+
+  // ---------- frame ----------
+  function draw() {
+    const sc = SCENES[sceneIdx], t = clock, st = sceneT;
+    const unit = Math.min(W, H);
+    drawBg(t);
+    const R = unit * 0.13;
+    const pipX = sc.items.length ? W * 0.3 : W * 0.5;
+    const talking = playing && st > 0.4 && st < 3.2;
+    drawPip(pipX, H * 0.6, R, t, { hop: !!sc.bye || (sc.count && st > 6.6) || (sc.word && st > 3.6 && st < 4.6), wave: !!sc.title || !!sc.bye, waveBoth: !!sc.bye, talk: talking, look: sc.items.length ? 1 : 0 });
+
+    // items drop in with a bounce
+    const n = sc.items.length, size = unit * (n > 1 ? 0.085 : 0.13);
+    sc.items.forEach((kind, i) => {
+      const delay = sc.count ? 1.8 + i * 1.3 : 0.3;
+      const p = clamp((st - delay) / 0.9, 0, 1);
+      if (p <= 0) return;
+      const tx = n > 1 ? W * 0.55 + i * size * 2.6 : W * 0.66;
+      const ty = H * (kind === 'sun' ? 0.35 : 0.6);
+      const y = -size + (ty + size) * bounceOut(p);
+      drawItem(kind, tx, y, size, t);
+      if (sc.count && st > delay + 0.3) {
+        const k = popIn(clamp((st - delay - 0.3) / 0.4, 0, 1));
+        ctx.save(); ctx.translate(tx, ty - size * 1.5); ctx.scale(k, k);
+        ctx.font = `800 ${size * 0.9}px ${getComputedStyle(document.documentElement).getPropertyValue('--round')}`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.lineWidth = size * 0.2; ctx.strokeStyle = '#ffffff'; ctx.strokeText(String(i + 1), 0, 0);
+        ctx.fillStyle = '#e8473c'; ctx.fillText(String(i + 1), 0, 0);
+        ctx.restore();
+      }
+    });
+
+    if (sc.word && st > 3.4) {
+      const k = popIn(clamp((st - 3.4) / 0.4, 0, 1));
+      ctx.save(); ctx.translate(pipX + R * 0.6, H * 0.6 - R * 1.25); ctx.scale(k, k);
+      bubble(0, 0, sc.word, sc.color, unit * 0.06); ctx.restore();
+    }
+    if (sc.count && st > 6.0) {
+      const k = popIn(clamp((st - 6) / 0.4, 0, 1));
+      ctx.save(); ctx.translate(pipX + R * 0.6, H * 0.6 - R * 1.25); ctx.scale(k, k);
+      bubble(0, 0, 'Три!', '#e8473c', unit * 0.06); ctx.restore();
+    }
+
+    if (sc.title) {
+      const k = popIn(clamp(st / 0.6, 0, 1));
+      ctx.save(); ctx.translate(W / 2, H * 0.24); ctx.scale(k, k); ctx.rotate(Math.sin(t * 2) * 0.03);
+      const fs = Math.min(unit * 0.13, W / 9);
+      ctx.font = `800 ${fs}px ${getComputedStyle(document.documentElement).getPropertyValue('--round')}`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const letters = 'Пип учит цвета'.split('');
+      const cols = ['#e8473c', '#f59e2a', '#f2b705', '#3fa34d', '#3d7be0', '#9b6be0'];
+      const total = ctx.measureText(letters.join('')).width;
+      let x = -total / 2;
+      letters.forEach((ch, i) => {
+        const w = ctx.measureText(ch).width, dy = Math.sin(t * 4 + i * 0.6) * fs * 0.06;
+        ctx.lineWidth = fs * 0.16; ctx.strokeStyle = '#ffffff'; ctx.strokeText(ch, x + w / 2, dy);
+        ctx.fillStyle = cols[i % cols.length]; ctx.fillText(ch, x + w / 2, dy);
+        x += w;
+      });
+      ctx.restore();
+    } else {
+      caption(sc.caption, Math.max(18, unit * 0.055));
+    }
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min((now - last) / 1000, 0.05); last = now;
+    clock += dt;
+    if (playing) {
+      sceneT += dt;
+      if (sceneT > SCENES[sceneIdx].dur) {
+        if (sceneIdx === SCENES.length - 1) { playing = false; playBtn.textContent = '↺ Ещё раз'; sceneT = SCENES[sceneIdx].dur; }
+        else goTo(sceneIdx + 1);
+      }
+    }
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  playBtn.addEventListener('click', () => {
+    if (playing) { playing = false; playBtn.textContent = '▶ Смотреть'; try { speechSynthesis.cancel(); } catch (e) {} return; }
+    if (sceneIdx === SCENES.length - 1 && sceneT >= SCENES[sceneIdx].dur) { sceneIdx = 0; sceneT = 0; }
+    playing = true; playBtn.textContent = '❚❚ Пауза';
+    if (sceneT < 0.5) speak(SCENES[sceneIdx].say);
+  });
+  nextBtn.addEventListener('click', () => { goTo(sceneIdx + 1); });
+  soundBtn.addEventListener('click', () => {
+    sound = !sound; soundBtn.textContent = sound ? 'Звук: вкл' : 'Звук: выкл';
+    if (!sound) try { speechSynthesis.cancel(); } catch (e) {}
+  });
+
+  addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(frame);
+})();
+</script>
