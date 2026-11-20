@@ -30,13 +30,13 @@ G0 = F0 + 5.0; e = say(16, G0 + 0.5)
 SEGS = [(U+"b62a5833-2026-11-18_203513.mp4", 0, 10.0, False),
         (SC+"/n2_fly.mp4", 0, 5.0, True),
         (U+"09e865a2-2026-11-18_203524.mp4", 0, 10.0, False),
-        (SC+"/w2.mp4", 0, 5.0, True),
+        (SC+"/n1_meadow.mp4", 0, 5.0, True),
         (SC+"/w3.mp4", 0, 5.0, True),
         (U+"21e9a24f-2026-11-18_203517.mp4", 4.5, 5.5, False),
         (SC+"/w1.mp4", 0, 5.0, True),
         (U+"ce3354b7-2026-11-18_203535.mp4", 0, F0 - 45.5, False),
         (SC+"/n3_basket.mp4", 0, 5.0, False),
-        (SC+"/w6.mp4", 0, 3.5, True),
+        (SC+"/n4_sunset.mp4", 0, 3.5, True),
         (U+"21e9a24f-2026-11-18_203517.mp4", 0, 4.4, False)]
 BOUND = [0]
 for sg in SEGS: BOUND.append(BOUND[-1] + sg[2])
