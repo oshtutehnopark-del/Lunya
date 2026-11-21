@@ -24,3 +24,5 @@
 - MiniMax-H3 (multimodalart/minimax-h3): не ответила за 25 мин, пробовать снова.
 - 20.11: Pollinations всё ещё отвечает 402 (бесплатный запас не обновился за сутки) — картинки для «Цветов» пока не рисуются.
 - 20.11: r3gm/wan2-2-fp8da-aoti-preview перестал работать (CancelledError), а zerogpu-aoti/wan2-2-fp8da-aoti-faster снова отдаёт файлы — использовать его. MiniMax-H3 снова не ответила за 12 мин.
+- 21.11: Pollinations: flux.1-kontext-pro — 402; flux.2-klein-4b дал 1 картинку (солнце) и тоже 402. Бесплатный запас Pollinations, похоже, не ежедневный.
+- 21.11: оба Wan-Space сбоят: zerogpu-aoti снова 403 при скачивании (квота тратится впустую), r3gm — CancelledError. Клипы за день не получены.
