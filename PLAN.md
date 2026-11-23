@@ -27,3 +27,4 @@
 - 21.11: Pollinations: flux.1-kontext-pro — 402; flux.2-klein-4b дал 1 картинку (солнце) и тоже 402. Бесплатный запас Pollinations, похоже, не ежедневный.
 - 21.11: оба Wan-Space сбоят: zerogpu-aoti снова 403 при скачивании (квота тратится впустую), r3gm — CancelledError. Клипы за день не получены.
 - 22.11: Pollinations — 402 на всех моделях; оба Wan-Space отвечают CancelledError за 2–3 с (клиент gradio_client 2.7.2 актуален, Space не менялись с августа). Клипов за день нет.
+- 23.11: Pollinations — 402; Wan (zerogpu-aoti) — ошибка за 2 с. Клипов нет третий день подряд.
